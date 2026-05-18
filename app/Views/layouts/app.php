@@ -5,7 +5,6 @@ use App\Core\Auth;
 use App\Core\Csrf;
 $user = Auth::user();
 $secInspect = (bool) config('security.enable_anti_inspect', true);
-$secWatermark = (bool) config('security.enable_watermark', true);
 $theme = $_COOKIE['theme'] ?? 'dark';
 ?>
 <!doctype html>
@@ -20,9 +19,7 @@ $theme = $_COOKIE['theme'] ?? 'dark';
 <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23111827'/><text x='50' y='62' font-size='52' text-anchor='middle' fill='%23a78bfa' font-family='sans-serif' font-weight='700'>G</text></svg>">
 </head>
 <body>
-<?php if ($user && $secWatermark): ?>
-<div id="gs-watermark" data-user="<?= e($user['name']) ?>" data-email="<?= e($user['email']) ?>" data-session="<?= e(substr(session_id(), 0, 8)) ?>" aria-hidden="true"></div>
-<?php endif; ?>
+<!-- Watermark removed for UI clarity -->
 
 <header class="topbar">
     <a class="brand" href="<?= url('/dashboard') ?>">
@@ -88,9 +85,6 @@ $theme = $_COOKIE['theme'] ?? 'dark';
 <script src="<?= asset('js/app.js') ?>" defer></script>
 <?php if ($secInspect): ?>
 <script src="<?= asset('js/security.js') ?>" defer></script>
-<?php endif; ?>
-<?php if ($user && $secWatermark): ?>
-<script src="<?= asset('js/watermark.js') ?>" defer></script>
 <?php endif; ?>
 <?= $__sections['scripts'] ?? '' ?>
 </body>

@@ -67,4 +67,15 @@
 
     // Auto-dismiss toasts
     document.querySelectorAll('.toast').forEach(t => setTimeout(() => t.remove(), 4000));
+
+    // Generic accordion cards [data-accordion]
+    document.querySelectorAll('[data-accordion]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const body = btn.nextElementSibling;
+            if (!body) return;
+            const isOpen = body.classList.contains('open');
+            body.classList.toggle('open', !isOpen);
+            btn.classList.toggle('open', !isOpen);
+        });
+    });
 })();

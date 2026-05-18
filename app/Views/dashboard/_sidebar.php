@@ -7,14 +7,24 @@
 $selectedCat = isset($filters['category_id']) ? (int) $filters['category_id'] : 0;
 $selectedSec = $filters['section_code'] ?? null;
 
-$renderNode = function (array $node, int $depth = 0) use (&$renderNode, $selectedCat) {
+// Check if a category or any of its descendants is selected
+$isInPath = function (array $node) use (&$isInPath, $selectedCat): bool {
+    if ($selectedCat === (int) $node['id']) return true;
+    foreach ($node['children'] ?? [] as $child) {
+        if ($isInPath($child)) return true;
+    }
+    return false;
+};
+
+$renderNode = function (array $node, int $depth = 0) use (&$renderNode, $selectedCat, &$isInPath) {
     $active = $selectedCat === (int) $node['id'];
     $hasChildren = !empty($node['children']);
+    $inPath = $hasChildren && $isInPath($node);
     ?>
     <li class="tree-item <?= $hasChildren ? 'has-children' : '' ?>">
         <div class="tree-row">
             <?php if ($hasChildren): ?>
-            <button class="tree-toggle" data-toggle="tree" type="button" aria-label="Toggle">
+            <button class="tree-toggle <?= $inPath ? 'open' : '' ?>" data-toggle="tree" type="button" aria-label="Toggle">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
             </button>
             <?php else: ?><span class="tree-spacer"></span><?php endif; ?>
@@ -24,7 +34,7 @@ $renderNode = function (array $node, int $depth = 0) use (&$renderNode, $selecte
             </a>
         </div>
         <?php if ($hasChildren): ?>
-        <ul class="tree-children" <?= $depth >= 1 ? 'hidden' : '' ?>>
+        <ul class="tree-children" <?= $inPath ? '' : 'hidden' ?>>
             <?php foreach ($node['children'] as $child) $renderNode($child, $depth + 1); ?>
         </ul>
         <?php endif; ?>

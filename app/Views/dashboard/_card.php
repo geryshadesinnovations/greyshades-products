@@ -13,6 +13,11 @@ $dur = format_duration($m['duration_sec'] ?? null);
 <a class="media-card" href="<?= url('/media/' . $m['uuid']) ?>" data-type="<?= e($type) ?>">
     <div class="media-thumb">
         <img loading="lazy" src="<?= url('/thumb/' . $m['uuid']) ?>" alt="<?= e($m['title']) ?>">
+        <?php if ($type === 'video'): ?>
+        <div class="play-overlay">
+            <svg viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+        <?php endif; ?>
         <span class="media-type-badge">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="<?= $icon ?>"/></svg>
             <?= strtoupper($type) ?>

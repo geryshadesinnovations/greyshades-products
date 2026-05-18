@@ -1,4 +1,4 @@
-/* Greyshades - drag & drop uploader with progress bar */
+/* Greyshades - drag & drop uploader with progress bar + media preview */
 (() => {
     'use strict';
 
@@ -12,6 +12,16 @@
     const bar      = document.getElementById('progress-bar');
     const result   = document.getElementById('upload-result');
     const titleInput = form.querySelector('input[name="title"]');
+    const submitBtn  = document.getElementById('upload-submit-btn');
+
+    // Preview elements
+    const previewWrap  = document.getElementById('upload-preview');
+    const previewVideo = document.getElementById('preview-video');
+    const previewImage = document.getElementById('preview-image');
+    const previewPdf   = document.getElementById('preview-pdf');
+    const previewPpt   = document.getElementById('preview-ppt');
+
+    let selectedFile = null;
 
     const showInfo = (file) => {
         info.hidden = false;
@@ -23,11 +33,50 @@
         }
     };
 
+    const showPreview = (file) => {
+        // Hide all previews first
+        [previewVideo, previewImage, previewPdf, previewPpt].forEach(el => { if (el) el.style.display = 'none'; });
+        if (!previewWrap) return;
+        previewWrap.classList.remove('visible');
+
+        const type = file.type || '';
+        const ext = file.name.split('.').pop().toLowerCase();
+
+        if (type.startsWith('video/') || ext === 'mp4') {
+            const url = URL.createObjectURL(file);
+            previewVideo.src = url;
+            previewVideo.style.display = 'block';
+            previewVideo.onloadeddata = () => previewWrap.classList.add('visible');
+            previewWrap.classList.add('visible');
+        } else if (type.startsWith('image/') || ['png','jpg','jpeg','webp','gif'].includes(ext)) {
+            const url = URL.createObjectURL(file);
+            previewImage.src = url;
+            previewImage.style.display = 'block';
+            previewImage.onload = () => previewWrap.classList.add('visible');
+            previewWrap.classList.add('visible');
+        } else if (type === 'application/pdf' || ext === 'pdf') {
+            previewPdf.style.display = 'block';
+            previewWrap.classList.add('visible');
+        } else if (['ppt','pptx'].includes(ext) || type.includes('powerpoint') || type.includes('presentation')) {
+            previewPpt.style.display = 'block';
+            previewWrap.classList.add('visible');
+        }
+    };
+
     const escape = (s) => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const bytes  = (n) => {
         const u = ['B','KB','MB','GB','TB']; let i = 0;
         while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
         return n.toFixed(2) + ' ' + u[i];
+    };
+
+    const selectFile = (file) => {
+        selectedFile = file;
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        input.files = dt.files;
+        showInfo(file);
+        showPreview(file);
     };
 
     drop.addEventListener('click', (e) => {
@@ -43,20 +92,24 @@
 
     drop.addEventListener('drop', (e) => {
         const f = e.dataTransfer.files?.[0];
-        if (f) {
-            const dt = new DataTransfer();
-            dt.items.add(f);
-            input.files = dt.files;
-            showInfo(f);
-            submit();
-        }
+        if (f) selectFile(f);
     });
     input.addEventListener('change', () => {
-        if (input.files?.length) {
-            showInfo(input.files[0]);
-            submit();
-        }
+        if (input.files?.length) selectFile(input.files[0]);
     });
+
+    // Manual submit via the button
+    if (submitBtn) {
+        submitBtn.addEventListener('click', () => {
+            if (!input.files?.length) {
+                // Flash the drop area
+                drop.classList.add('dragover');
+                setTimeout(() => drop.classList.remove('dragover'), 600);
+                return;
+            }
+            submit();
+        });
+    }
 
     const submit = () => {
         const fd  = new FormData(form);
@@ -64,6 +117,7 @@
 
         progress.hidden = false; bar.style.width = '0%';
         result.hidden = true; result.classList.remove('success','error','duplicate');
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Uploading...'; }
 
         xhr.upload.addEventListener('progress', (e) => {
             if (e.lengthComputable) {
@@ -71,6 +125,7 @@
             }
         });
         xhr.addEventListener('load', () => {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg> Upload file'; }
             try {
                 const data = JSON.parse(xhr.responseText);
                 if (xhr.status >= 200 && xhr.status < 300 && data.ok) {
@@ -80,9 +135,11 @@
                           ' <a href="' + data.media.url + '">View existing</a>';
                     } else {
                         result.className = 'upload-result success';
-                        result.innerHTML = 'Upload successful. <a href="' + data.media.url + '">View media</a>';
-                        // reset file input but keep metadata for further uploads
+                        result.innerHTML = 'Upload successful! <a href="' + data.media.url + '">View media</a>';
                         input.value = ''; info.hidden = true;
+                        selectedFile = null;
+                        if (previewWrap) previewWrap.classList.remove('visible');
+                        [previewVideo, previewImage, previewPdf, previewPpt].forEach(el => { if (el) el.style.display = 'none'; });
                     }
                 } else {
                     result.className = 'upload-result error';
@@ -96,6 +153,7 @@
             setTimeout(() => { progress.hidden = true; bar.style.width = '0%'; }, 800);
         });
         xhr.addEventListener('error', () => {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg> Upload file'; }
             result.className = 'upload-result error';
             result.textContent = 'Network error.';
             result.hidden = false;
@@ -107,4 +165,15 @@
         if (csrf) xhr.setRequestHeader('X-CSRF-TOKEN', csrf);
         xhr.send(fd);
     };
+
+    // --- Accordion logic for category cards ---
+    document.querySelectorAll('[data-accordion]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const body = btn.nextElementSibling;
+            if (!body) return;
+            const isOpen = body.classList.contains('open');
+            body.classList.toggle('open', !isOpen);
+            btn.classList.toggle('open', !isOpen);
+        });
+    });
 })();

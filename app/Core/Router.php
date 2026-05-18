@@ -69,14 +69,20 @@ final class Router
 
     private function call(mixed $handler, array $args): void
     {
+        // Cast numeric route params (e.g. {id}) to int for strict-typed controllers
+        $castArgs = array_map(
+            fn ($v) => is_string($v) && ctype_digit($v) ? (int) $v : $v,
+            array_values($args)
+        );
+
         if (is_array($handler) && count($handler) === 2) {
             [$class, $method] = $handler;
             $instance = new $class();
-            $instance->{$method}(...array_values($args));
+            $instance->{$method}(...$castArgs);
             return;
         }
         if (is_callable($handler)) {
-            $handler(...array_values($args));
+            $handler(...$castArgs);
             return;
         }
         throw new \RuntimeException('Invalid route handler');

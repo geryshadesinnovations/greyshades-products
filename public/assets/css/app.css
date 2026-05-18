@@ -250,8 +250,19 @@ html[data-theme="light"] .topbar { background: rgba(255,255,255,.65); }
 .select span { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); }
 .select select, .filter-form input[type="search"] {
   padding: .55rem .75rem; border-radius: 10px;
-  background: rgba(255,255,255,.03); border: 1px solid var(--border); color: var(--text);
+  background: var(--bg-2); border: 1px solid var(--border); color: var(--text);
   min-width: 160px;
+}
+html[data-theme="dark"] .select select,
+html[data-theme="dark"] .filter-form select,
+html[data-theme="dark"] select {
+  background: #1a1a2e; color: var(--text);
+}
+html[data-theme="dark"] select option {
+  background: #1a1a2e; color: var(--text);
+}
+html[data-theme="light"] select option {
+  background: #ffffff; color: #1e2235;
 }
 
 .tag-strip { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .85rem; }
@@ -345,7 +356,7 @@ html[data-theme="light"] .topbar { background: rgba(255,255,255,.65); }
 .auth-form span { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .07em; }
 .auth-form input {
   padding: .75rem .9rem; border-radius: 12px;
-  background: rgba(255,255,255,.04); border: 1px solid var(--border); color: var(--text); outline: 0;
+  background: var(--bg-2); border: 1px solid var(--border); color: var(--text); outline: 0;
   transition: border-color var(--speed), background var(--speed);
 }
 .auth-form input:focus { border-color: var(--accent); background: rgba(167,139,250,.08); }
@@ -396,7 +407,7 @@ html[data-theme="light"] .topbar { background: rgba(255,255,255,.65); }
 .form-card label > span { font-size: 12px; text-transform: uppercase; color: var(--text-muted); letter-spacing: .07em; }
 .form-card input[type="text"], .form-card input[type="email"], .form-card input[type="password"], .form-card input:not([type]), .form-card textarea, .form-card select {
   padding: .65rem .85rem; border-radius: 10px;
-  background: rgba(255,255,255,.04); border: 1px solid var(--border); color: var(--text); outline: 0;
+  background: var(--bg-2); border: 1px solid var(--border); color: var(--text); outline: 0;
 }
 .form-card textarea { resize: vertical; }
 .form-card fieldset {
@@ -443,7 +454,7 @@ html[data-theme="light"] .topbar { background: rgba(255,255,255,.65); }
 .upload-meta label { display: flex; flex-direction: column; gap: .25rem; }
 .upload-meta label > span { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .07em; }
 .upload-meta input[type="text"], .upload-meta input:not([type]), .upload-meta textarea {
-  padding: .55rem .75rem; border-radius: 10px; background: rgba(255,255,255,.04); border: 1px solid var(--border); color: var(--text); outline: 0;
+  padding: .55rem .75rem; border-radius: 10px; background: var(--bg-2); border: 1px solid var(--border); color: var(--text); outline: 0;
 }
 .upload-meta fieldset { border: 1px solid var(--border); border-radius: 12px; padding: .75rem; }
 .upload-meta legend { padding: 0 .35rem; font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: .07em; }
@@ -501,7 +512,7 @@ html[data-theme="light"] .topbar { background: rgba(255,255,255,.65); }
 .create-form .grid-form.mini { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
 .create-form .grid-form label { display: flex; flex-direction: column; gap: .25rem; }
 .create-form .grid-form label span { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .07em; }
-.create-form input, .create-form select { padding: .55rem .75rem; border-radius: 10px; background: rgba(255,255,255,.04); border: 1px solid var(--border); color: var(--text); outline: 0; }
+.create-form input, .create-form select { padding: .55rem .75rem; border-radius: 10px; background: var(--bg-2); border: 1px solid var(--border); color: var(--text); outline: 0; }
 .perm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: .35rem; grid-column: 1 / -1; }
 .perm-grid label { flex-direction: row !important; align-items: center !important; gap: .35rem; font-size: 13px; }
 .row-actions { display: flex; gap: .5rem; grid-column: 1 / -1; }
@@ -514,17 +525,127 @@ html[data-theme="light"] .topbar { background: rgba(255,255,255,.65); }
 .cat-row form { margin: 0; }
 .btn-danger.small { padding: .25rem .55rem; font-size: 12px; }
 
-/* ---------- Watermark overlay ---------- */
-#gs-watermark {
-  position: fixed; inset: 0; z-index: 9999;
-  pointer-events: none;
-  display: grid; place-items: center;
-  font-family: var(--font); font-weight: 600; font-size: 13px;
-  color: rgba(255,255,255,.06);
-  text-shadow: 0 1px 2px rgba(0,0,0,.25);
-  mix-blend-mode: overlay;
-}
-html[data-theme="light"] #gs-watermark { color: rgba(0,0,0,.05); mix-blend-mode: multiply; }
+/* ---------- Watermark overlay (disabled - removed for UI clarity) ---------- */
+#gs-watermark { display: none !important; }
 
 /* ---------- Print kill switch ---------- */
 @media print { body { display: none !important; } }
+
+/* ---------- Enhanced form select (all contexts) ---------- */
+select,
+.form-card select,
+.upload-meta select,
+.auth-form select {
+  padding: .55rem .75rem; border-radius: 10px;
+  background: var(--bg-2); border: 1px solid var(--border); color: var(--text);
+  outline: 0; -webkit-appearance: none; appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%238a8fa3' stroke-width='2'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right .75rem center; background-size: 12px;
+  padding-right: 2rem;
+}
+
+/* ---------- Password toggle ---------- */
+.password-wrap {
+  position: relative; display: flex; flex-direction: column; gap: .35rem;
+}
+.password-wrap input { padding-right: 2.8rem; }
+.toggle-pw {
+  position: absolute; right: .75rem; bottom: .75rem;
+  background: transparent; border: 0; color: var(--text-muted); cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; padding: 0;
+}
+.toggle-pw:hover { color: var(--accent); }
+
+/* ---------- Remember me ---------- */
+.auth-extras {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+}
+.remember-me {
+  display: flex; align-items: center; gap: .4rem; font-size: 13px; cursor: pointer;
+  color: var(--text-muted);
+}
+.remember-me input { accent-color: var(--accent); }
+
+/* ---------- Category cards (redesigned) ---------- */
+.cat-section-card {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  overflow: hidden; margin-bottom: .75rem;
+}
+.cat-section-header {
+  display: flex; align-items: center; gap: .5rem;
+  padding: .65rem .85rem; cursor: pointer;
+  background: var(--accent-soft); font-weight: 600; font-size: 13.5px;
+  border: none; width: 100%; text-align: left; color: var(--text);
+  transition: background var(--speed);
+}
+.cat-section-header:hover { background: rgba(167,139,250,.22); }
+.cat-section-header svg { transition: transform var(--speed); flex-shrink: 0; }
+.cat-section-header.open svg { transform: rotate(90deg); }
+.cat-section-body {
+  padding: .5rem .85rem .75rem; display: none;
+  max-height: 280px; overflow-y: auto;
+}
+.cat-section-body.open { display: block; }
+.cat-section-body .cat-pick {
+  padding: .3rem 0; border-bottom: 1px dashed rgba(255,255,255,.04);
+}
+.cat-section-body .cat-pick:last-child { border-bottom: 0; }
+
+/* ---------- Upload form sections ---------- */
+.upload-meta .form-section {
+  border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
+  margin-bottom: .5rem;
+}
+.upload-meta .form-section-title {
+  display: flex; align-items: center; gap: .5rem;
+  padding: .6rem .85rem; font-weight: 700; font-size: 12px;
+  text-transform: uppercase; letter-spacing: .07em;
+  color: var(--text-muted); background: var(--accent-soft);
+}
+.upload-meta .form-section-body { padding: .75rem .85rem; display: flex; flex-direction: column; gap: .75rem; }
+
+/* ---------- Upload submit button ---------- */
+.upload-submit-wrap {
+  position: sticky; bottom: 0; z-index: 5;
+  padding: .75rem 0; margin-top: .5rem;
+  background: linear-gradient(to top, var(--bg-1) 50%, transparent);
+}
+.upload-submit-wrap .btn-primary { width: 100%; justify-content: center; padding: .85rem; font-size: 15px; }
+
+/* ---------- Media preview before upload ---------- */
+.upload-preview {
+  margin-top: 1rem; border-radius: var(--radius); overflow: hidden;
+  border: 1px solid var(--border); background: var(--bg-2);
+  max-height: 320px; display: none;
+}
+.upload-preview.visible { display: flex; align-items: center; justify-content: center; }
+.upload-preview video,
+.upload-preview img {
+  max-width: 100%; max-height: 300px; display: block; margin: 0 auto;
+}
+.upload-preview .pdf-preview-msg,
+.upload-preview .ppt-preview-msg {
+  padding: 2rem 1rem; text-align: center; color: var(--text-muted); font-size: 14px;
+}
+.upload-preview .pdf-preview-msg svg,
+.upload-preview .ppt-preview-msg svg { margin: 0 auto .5rem; display: block; }
+
+/* ---------- Video thumbnail badge on cards ---------- */
+.media-card[data-type="video"] .media-thumb::after {
+  content: '';
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,.25);
+  opacity: 0; transition: opacity 250ms;
+  pointer-events: none;
+}
+.media-card[data-type="video"]:hover .media-thumb::after { opacity: 1; }
+.media-card[data-type="video"] .media-thumb .play-overlay {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  pointer-events: none; opacity: 0; transition: opacity 250ms;
+}
+.media-card[data-type="video"]:hover .media-thumb .play-overlay { opacity: 1; }
+.play-overlay svg {
+  width: 44px; height: 44px; fill: white; filter: drop-shadow(0 2px 8px rgba(0,0,0,.5));
+}
