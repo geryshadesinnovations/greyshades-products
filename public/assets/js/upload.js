@@ -166,17 +166,6 @@
         xhr.send(fd);
     };
 
-    // --- Accordion logic for category cards ---
-    document.querySelectorAll('[data-accordion]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const body = btn.nextElementSibling;
-            if (!body) return;
-            const isOpen = body.classList.contains('open');
-            body.classList.toggle('open', !isOpen);
-            btn.classList.toggle('open', !isOpen);
-        });
-    });
-
     // --- Section toggle: show/hide category groups based on checked sections ---
     const sectionToggles = document.querySelectorAll('[data-section-toggle]');
     const catGroups = document.querySelectorAll('.cat-group[data-section]');

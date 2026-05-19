@@ -3,9 +3,31 @@
  * @var array<int,array> $sections
  * @var array<string,array> $trees       map sectionCode => nested category tree
  * @var array $filters
+ * @var string $sort
  */
 $selectedCat = isset($filters['category_id']) ? (int) $filters['category_id'] : 0;
 $selectedSec = $filters['section_code'] ?? null;
+
+// Build a URL preserving non-conflicting filters (e.g. clicking a category
+// keeps the active occasion/tag/type/sort but replaces any prior category
+// or section selection).
+$navUrl = function (array $changes) use ($filters, $sort): string {
+    $qs = array_filter([
+        'occasion' => $filters['occasion_id'] ?? null,
+        'tag'      => $filters['tag_id']      ?? null,
+        'type'     => $filters['media_type']  ?? null,
+        'q'        => $filters['q']           ?? null,
+        'sort'     => $sort !== 'newest' ? $sort : null,
+    ], fn ($v) => $v !== null && $v !== '' && $v !== 0);
+    foreach ($changes as $k => $v) {
+        if ($v === null || $v === '' || $v === 0) {
+            unset($qs[$k]);
+        } else {
+            $qs[$k] = $v;
+        }
+    }
+    return '?' . http_build_query($qs);
+};
 
 // Check if a category or any of its descendants is selected
 $isInPath = function (array $node) use (&$isInPath, $selectedCat): bool {
@@ -16,7 +38,7 @@ $isInPath = function (array $node) use (&$isInPath, $selectedCat): bool {
     return false;
 };
 
-$renderNode = function (array $node, int $depth = 0) use (&$renderNode, $selectedCat, &$isInPath) {
+$renderNode = function (array $node, int $depth = 0) use (&$renderNode, $selectedCat, &$isInPath, $navUrl) {
     $active = $selectedCat === (int) $node['id'];
     $hasChildren = !empty($node['children']);
     $inPath = $hasChildren && $isInPath($node);
@@ -29,7 +51,7 @@ $renderNode = function (array $node, int $depth = 0) use (&$renderNode, $selecte
             </button>
             <?php else: ?><span class="tree-spacer"></span><?php endif; ?>
             <a class="tree-link <?= $active ? 'active' : '' ?>"
-               href="?<?= http_build_query(array_filter(['section'=>$_GET['section']??null,'category'=>$node['id']])) ?>">
+               href="<?= e($navUrl(['category' => (int) $node['id']])) ?>">
                 <?= e($node['name']) ?>
             </a>
         </div>
@@ -53,7 +75,8 @@ $renderNode = function (array $node, int $depth = 0) use (&$renderNode, $selecte
     <?php foreach ($sections as $s): ?>
     <div class="sidebar-section">
         <h4 class="sidebar-title">
-            <a href="?section=<?= e($s['code']) ?>" class="<?= ($selectedSec === $s['code'] && !$selectedCat) ? 'active' : '' ?>">
+            <a href="<?= e($navUrl(['section' => (string) $s['code'], 'category' => null])) ?>"
+               class="<?= ($selectedSec === $s['code'] && !$selectedCat) ? 'active' : '' ?>">
                 <?php if ($s['code'] === 'graphics'): ?>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg>
                 <?php else: ?>

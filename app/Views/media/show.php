@@ -114,28 +114,6 @@ $previewUrl = url('/preview/' . $media['uuid']);
                 </a>
             <?php endif; ?>
 
-            <?php if ($type === 'video'): ?>
-                <button type="button" class="btn-ghost" id="save-offline-btn" data-offline-url="<?= e($streamUrl) ?>" data-title="<?= e($media['title']) ?>">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                    Save for offline
-                </button>
-                <script>
-                document.addEventListener('DOMContentLoaded', () => {
-                    const btn = document.getElementById('save-offline-btn');
-                    if (!btn || !navigator.serviceWorker?.controller) return;
-                    btn.addEventListener('click', () => {
-                        btn.textContent = 'Saving...';
-                        btn.disabled = true;
-                        navigator.serviceWorker.controller.postMessage({
-                            type: 'CACHE_VIDEO',
-                            url: btn.dataset.offlineUrl,
-                            title: btn.dataset.title
-                        });
-                    });
-                });
-                </script>
-            <?php endif; ?>
-
             <?php if ($canEdit): ?>
                 <a class="btn-ghost" href="<?= url('/media/' . $media['id'] . '/edit') ?>">Edit</a>
             <?php endif; ?>

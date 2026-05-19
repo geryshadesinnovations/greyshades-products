@@ -55,7 +55,49 @@ final class StreamController
         }
         $ext = strtolower((string) pathinfo($abs, PATHINFO_EXTENSION));
         $mime = self::HLS_MIME[$ext] ?? 'application/octet-stream';
+
+        // For .m3u8 playlists we MUST rewrite each relative reference to include
+        // the access token, otherwise the browser fetches them as anonymous and
+        // the StreamController correctly returns 403. We do that here on the fly
+        // so the original playlist files on disk stay untouched.
+        if ($ext === 'm3u8') {
+            $token = (string) ($_GET['token'] ?? '');
+            $contents = (string) file_get_contents($abs);
+            $rewritten = $this->rewriteHlsPlaylist($contents, (string) $m['uuid'], $token);
+            header('X-Content-Type-Options: nosniff');
+            header('Content-Type: ' . $mime);
+            header('Cache-Control: private, no-store');
+            header('Content-Length: ' . strlen($rewritten));
+            echo $rewritten;
+            return;
+        }
+
         $this->serveFile($abs, $mime, allowRange: false);
+    }
+
+    /**
+     * Rewrite an HLS playlist so every variant/segment URI carries the access
+     * token and points back at our /stream/{uuid}/hls/{seg} endpoint.
+     */
+    private function rewriteHlsPlaylist(string $contents, string $uuid, string $token): string
+    {
+        $base = url('/stream/' . $uuid . '/hls/');
+        $tokenSuffix = '?token=' . rawurlencode($token);
+        $out = [];
+        foreach (preg_split("/\r?\n/", $contents) as $line) {
+            $trim = trim($line);
+            if ($trim === '' || $trim[0] === '#') {
+                $out[] = $line;
+                continue;
+            }
+            // Skip absolute URIs (shouldn't appear, but defensive)
+            if (preg_match('#^https?://#i', $trim)) {
+                $out[] = $line;
+                continue;
+            }
+            $out[] = $base . $trim . $tokenSuffix;
+        }
+        return implode("\n", $out);
     }
 
     public function thumb(string $uuid): void

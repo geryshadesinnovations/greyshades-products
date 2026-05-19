@@ -14,23 +14,71 @@ $rows  = $result['rows'];
 $total = $result['total'];
 $page  = $result['page'];
 $pages = $result['pages'];
+
+/**
+ * Build a URL with the current filters preserved, overriding/removing the
+ * keys passed in $changes. Pass null as a value to drop a key.
+ */
+$buildUrl = function (array $changes = []) use ($filters, $sort): string {
+    $qs = array_filter([
+        'section'  => $filters['section_code'] ?? null,
+        'category' => $filters['category_id']  ?? null,
+        'occasion' => $filters['occasion_id']  ?? null,
+        'tag'      => $filters['tag_id']       ?? null,
+        'type'     => $filters['media_type']   ?? null,
+        'q'        => $filters['q']            ?? null,
+        'sort'     => $sort !== 'newest' ? $sort : null,
+    ], fn ($v) => $v !== null && $v !== '' && $v !== 0);
+    foreach ($changes as $k => $v) {
+        if ($v === null || $v === '' || $v === 0) {
+            unset($qs[$k]);
+        } else {
+            $qs[$k] = $v;
+        }
+    }
+    return '?' . http_build_query($qs);
+};
 ?>
 <div class="dashboard">
     <button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-label="Toggle sidebar">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        Categories
     </button>
 
     <?php require __DIR__ . '/_sidebar.php'; ?>
 
     <section class="content">
+        <!-- Active filter chips: lets users see and remove individual filters -->
+        <?php
+            $activeChips = [];
+            if (!empty($filters['q']))            $activeChips[] = ['label' => 'Search: "' . $filters['q'] . '"',                'href' => $buildUrl(['q' => null])];
+            if (!empty($filters['section_code'])) $activeChips[] = ['label' => 'Section: ' . ucfirst((string) $filters['section_code']), 'href' => $buildUrl(['section' => null])];
+            if (!empty($filters['category_id'])) {
+                $catName = (string) (\App\Core\Database::scalar('SELECT name FROM categories WHERE id = ?', [(int) $filters['category_id']]) ?? 'Category');
+                $activeChips[] = ['label' => 'Category: ' . $catName, 'href' => $buildUrl(['category' => null])];
+            }
+            if (!empty($filters['occasion_id'])) {
+                $occName = (string) (\App\Core\Database::scalar('SELECT name FROM occasions WHERE id = ?', [(int) $filters['occasion_id']]) ?? 'Occasion');
+                $activeChips[] = ['label' => 'Occasion: ' . $occName, 'href' => $buildUrl(['occasion' => null])];
+            }
+            if (!empty($filters['tag_id'])) {
+                $tagName = (string) (\App\Core\Database::scalar('SELECT name FROM tags WHERE id = ?', [(int) $filters['tag_id']]) ?? 'Tag');
+                $activeChips[] = ['label' => '#' . $tagName, 'href' => $buildUrl(['tag' => null])];
+            }
+            if (!empty($filters['media_type']))   $activeChips[] = ['label' => 'Type: ' . ucfirst((string) $filters['media_type']), 'href' => $buildUrl(['type' => null])];
+        ?>
+
         <div class="filterbar glass">
-            <form class="filter-form" method="get">
-                <?php if (!empty($filters['q'])): ?><input type="hidden" name="q" value="<?= e($filters['q']) ?>"><?php endif; ?>
+            <form class="filter-form" method="get" id="filter-form">
+                <?php /* preserve current filters as hidden inputs so each select-change submits the FULL filter set */ ?>
+                <?php if (!empty($filters['q'])): ?>       <input type="hidden" name="q"        value="<?= e($filters['q']) ?>"><?php endif; ?>
+                <?php if (!empty($filters['category_id'])): ?><input type="hidden" name="category" value="<?= (int) $filters['category_id'] ?>"><?php endif; ?>
+                <?php if (!empty($filters['tag_id'])): ?>  <input type="hidden" name="tag"      value="<?= (int) $filters['tag_id'] ?>"><?php endif; ?>
 
                 <label class="select">
                     <span>Section</span>
                     <select name="section" onchange="this.form.submit()">
-                        <option value="">All</option>
+                        <option value="">All sections</option>
                         <?php foreach ($sections as $s): ?>
                         <option value="<?= e($s['code']) ?>" <?= ($filters['section_code'] ?? null) === $s['code'] ? 'selected' : '' ?>><?= e($s['name']) ?></option>
                         <?php endforeach; ?>
@@ -62,7 +110,7 @@ $pages = $result['pages'];
                 </label>
 
                 <label class="select">
-                    <span>Sort</span>
+                    <span>Sort by</span>
                     <select name="sort" onchange="this.form.submit()">
                         <?php foreach (['newest'=>'Newest','oldest'=>'Oldest','popular'=>'Most viewed','az'=>'A → Z'] as $k=>$v): ?>
                         <option value="<?= $k ?>" <?= $sort === $k ? 'selected' : '' ?>><?= $v ?></option>
@@ -70,18 +118,29 @@ $pages = $result['pages'];
                     </select>
                 </label>
 
-                <?php if (!empty($filters['category_id'])): ?>
-                    <input type="hidden" name="category" value="<?= (int) $filters['category_id'] ?>">
+                <?php if (!empty($activeChips)): ?>
+                    <a class="btn-ghost clear-all-btn" href="<?= url('/dashboard') ?>">Clear all</a>
                 <?php endif; ?>
-
-                <a class="btn-ghost" href="<?= url('/dashboard') ?>">Clear</a>
             </form>
+
+            <?php if (!empty($activeChips)): ?>
+            <div class="active-filter-strip">
+                <span class="active-label">Active filters:</span>
+                <?php foreach ($activeChips as $chip): ?>
+                <a class="chip active removable" href="<?= e($chip['href']) ?>" title="Remove this filter">
+                    <?= e($chip['label']) ?>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </a>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
 
             <?php if (!empty($tags)): ?>
             <div class="tag-strip">
+                <span class="active-label">Popular tags:</span>
                 <?php foreach ($tags as $t): ?>
                 <a class="chip <?= ($filters['tag_id'] ?? null) == $t['id'] ? 'active' : '' ?>"
-                   href="?<?= http_build_query(array_filter(['section'=>$filters['section_code']??null,'category'=>$filters['category_id']??null,'tag'=>$t['id']])) ?>">
+                   href="<?= e($buildUrl(['tag' => (($filters['tag_id'] ?? null) == $t['id']) ? null : (int) $t['id']])) ?>">
                     #<?= e($t['name']) ?>
                 </a>
                 <?php endforeach; ?>
@@ -92,7 +151,7 @@ $pages = $result['pages'];
         <div class="content-header">
             <h2>
                 <?php if (!empty($filters['q'])): ?>Search results for "<?= e($filters['q']) ?>"
-                <?php elseif (!empty($filters['section_code']) || !empty($filters['category_id']) || !empty($filters['occasion_id']) || !empty($filters['tag_id'])): ?>Filtered media
+                <?php elseif (!empty($filters['section_code']) || !empty($filters['category_id']) || !empty($filters['occasion_id']) || !empty($filters['tag_id']) || !empty($filters['media_type'])): ?>Filtered media
                 <?php else: ?>All media<?php endif; ?>
             </h2>
             <span class="muted"><?= number_format($total) ?> item<?= $total === 1 ? '' : 's' ?></span>

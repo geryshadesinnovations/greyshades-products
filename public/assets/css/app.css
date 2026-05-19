@@ -744,3 +744,216 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); opacity: .
   box-shadow: var(--shadow-md); display: none;
 }
 .offline-badge.visible { display: block; }
+
+
+
+/* ===========================================================================
+ * v3 polish: stylish custom checkboxes, login refinement, filter chips.
+ * ========================================================================= */
+
+/* ---------- Custom checkbox style (used everywhere) ---------- */
+.cat-pick input[type="checkbox"],
+.cat-pick input[type="radio"],
+.remember-check input[type="checkbox"],
+.perm-grid input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px; height: 18px;
+  flex-shrink: 0;
+  border: 2px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg-2);
+  cursor: pointer;
+  position: relative;
+  transition: border-color var(--speed), background var(--speed), box-shadow var(--speed);
+  margin: 0;
+  vertical-align: middle;
+}
+.cat-pick input[type="radio"],
+.remember-check input[type="radio"] { border-radius: 50%; }
+
+.cat-pick input[type="checkbox"]:hover,
+.cat-pick input[type="radio"]:hover,
+.remember-check input[type="checkbox"]:hover,
+.perm-grid input[type="checkbox"]:hover {
+  border-color: var(--accent);
+}
+
+.cat-pick input[type="checkbox"]:checked,
+.remember-check input[type="checkbox"]:checked,
+.perm-grid input[type="checkbox"]:checked {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border-color: var(--accent);
+}
+.cat-pick input[type="checkbox"]:checked::after,
+.remember-check input[type="checkbox"]:checked::after,
+.perm-grid input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  top: 1px; left: 5px;
+  width: 4px; height: 9px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.cat-pick input[type="radio"]:checked {
+  border-color: var(--accent);
+  background: var(--bg-2);
+}
+.cat-pick input[type="radio"]:checked::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+}
+
+.cat-pick input:focus-visible,
+.remember-check input:focus-visible,
+.perm-grid input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* Apply same custom style to ALL native checkboxes/radios in any form */
+input[type="checkbox"]:not(.no-style),
+input[type="radio"]:not(.no-style) {
+  accent-color: var(--accent);
+}
+
+/* ---------- Cat-pick label polish (consistent rows) ---------- */
+.cat-pick {
+  display: flex; align-items: center; gap: .55rem;
+  padding: .4rem .55rem;
+  border-radius: 8px;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: background var(--speed);
+  user-select: none;
+}
+.cat-pick:hover { background: var(--accent-soft); }
+.cat-pick:has(input:checked) { color: var(--accent); }
+
+/* Permission grid in admin forms */
+.perm-grid label {
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: .55rem !important;
+  padding: .35rem .5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  color: var(--text) !important;
+}
+.perm-grid label:hover { background: var(--accent-soft); }
+
+/* ---------- Login: remember-me upgrade ---------- */
+.remember-check {
+  display: inline-flex;
+  align-items: center;
+  gap: .55rem;
+  padding: .35rem .65rem;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: var(--text);
+  cursor: pointer;
+  transition: background var(--speed);
+}
+.remember-check:hover { background: var(--accent-soft); }
+.remember-check span {
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  font-weight: 500;
+}
+
+/* ---------- Login: bigger brand mark + better spacing ---------- */
+.auth-card {
+  padding: 2.25rem 2rem 2rem;
+}
+.auth-brand .brand-mark.big {
+  width: 64px; height: 64px;
+  font-size: 32px;
+  border-radius: 18px;
+  margin-bottom: .85rem;
+  box-shadow: 0 12px 30px rgba(167,139,250,.3);
+}
+.auth-brand h1 {
+  font-size: 1.85rem;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  margin: 0;
+}
+.auth-brand p { font-size: 13.5px; margin-top: .25rem; }
+
+/* ---------- Filter strip polish ---------- */
+.active-filter-strip {
+  display: flex; flex-wrap: wrap; gap: .4rem;
+  margin-top: .85rem; align-items: center;
+}
+.active-label {
+  font-size: 11px; text-transform: uppercase;
+  letter-spacing: .07em; color: var(--text-muted);
+  font-weight: 700; margin-right: .25rem;
+}
+.chip.removable {
+  display: inline-flex; align-items: center; gap: .35rem;
+  padding-right: .45rem;
+}
+.chip.removable svg { opacity: .7; transition: opacity var(--speed); }
+.chip.removable:hover svg { opacity: 1; }
+
+.tag-strip {
+  margin-top: .75rem;
+  padding-top: .75rem;
+  border-top: 1px dashed var(--border);
+}
+
+.filter-form {
+  align-items: flex-end;
+  gap: .85rem;
+}
+.filter-form .clear-all-btn {
+  margin-left: auto;
+  padding: .55rem .9rem;
+  font-size: 13px;
+}
+
+.filterbar {
+  padding: 1.1rem 1.25rem;
+}
+
+/* Sidebar toggle on mobile - more visible */
+.sidebar-toggle {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* Remove offline badge entirely (feature removed) */
+.offline-badge { display: none !important; }
+
+/* ---------- Mobile responsive tweaks ---------- */
+@media (max-width: 720px) {
+  .filter-form { gap: .65rem; }
+  .filter-form .select { flex: 1 1 calc(50% - .65rem); min-width: 0; }
+  .filter-form .select select { min-width: 0; width: 100%; }
+  .filter-form .clear-all-btn { width: 100%; justify-content: center; margin-left: 0; }
+  .filterbar { padding: .85rem; }
+  .auth-card { padding: 1.5rem 1.25rem 1.25rem; }
+  .auth-brand .brand-mark.big { width: 56px; height: 56px; font-size: 28px; }
+  .upload-grid { grid-template-columns: 1fr !important; }
+  .upload-meta { max-height: none; }
+}
+
+/* ---------- Auth options row spacing ---------- */
+.auth-options {
+  margin-top: -.25rem;
+  margin-bottom: .25rem;
+}

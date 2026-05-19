@@ -73,4 +73,4 @@ header("Content-Security-Policy: default-src 'self'; img-src 'self' data: blob:;
      . "media-src 'self' blob:; style-src 'self' 'unsafe-inline'; "
      . "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
      . "font-src 'self' data: https://cdn.jsdelivr.net; "
-     . "connect-src 'self'; frame-ancestors 'self'");
+     . "connect-src 'self' https://cdn.jsdelivr.net; frame-ancestors 'self'");
