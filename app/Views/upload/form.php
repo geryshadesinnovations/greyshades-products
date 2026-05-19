@@ -99,14 +99,14 @@ $renderCatAccordion = function ($nodes, $depth = 0) use (&$renderCatAccordion) {
                 </div>
                 <div class="form-section-body">
                     <fieldset>
-                        <legend>Section</legend>
+                        <legend>Section (select where this media appears)</legend>
                         <?php foreach ($sections as $i => $s): ?>
-                        <label class="cat-pick"><input form="upload-form" type="radio" name="section" value="<?= e($s['code']) ?>" <?= $i === 0 ? 'checked' : '' ?>> <?= e($s['name']) ?></label>
+                        <label class="cat-pick"><input form="upload-form" type="checkbox" name="sections[]" value="<?= e($s['code']) ?>" <?= $i === 0 ? 'checked' : '' ?> data-section-toggle="<?= e($s['code']) ?>"> <?= e($s['name']) ?></label>
                         <?php endforeach; ?>
                     </fieldset>
 
                     <?php foreach ($sections as $s): ?>
-                    <div class="cat-group">
+                    <div class="cat-group" data-section="<?= e($s['code']) ?>">
                         <h4 style="margin:0 0 .5rem;font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em"><?= e($s['name']) ?></h4>
                         <?php $renderCatAccordion($trees[$s['code']] ?? []); ?>
                     </div>

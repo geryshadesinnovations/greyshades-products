@@ -78,4 +78,29 @@
             btn.classList.toggle('open', !isOpen);
         });
     });
+
+    // Register Service Worker for offline video support
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+        
+        // Listen for cached confirmations
+        navigator.serviceWorker.addEventListener('message', (e) => {
+            if (e.data.type === 'VIDEO_CACHED') {
+                const btn = document.querySelector('[data-offline-url="' + e.data.url + '"]');
+                if (btn) {
+                    btn.textContent = 'Available offline';
+                    btn.classList.add('cached');
+                    btn.disabled = true;
+                }
+            }
+        });
+    }
+    
+    // Offline indicator
+    const offlineBadge = document.createElement('div');
+    offlineBadge.className = 'offline-badge';
+    offlineBadge.textContent = 'You are offline';
+    document.body.appendChild(offlineBadge);
+    window.addEventListener('online', () => offlineBadge.classList.remove('visible'));
+    window.addEventListener('offline', () => offlineBadge.classList.add('visible'));
 })();

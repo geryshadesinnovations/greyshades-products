@@ -183,7 +183,7 @@ final class Media
         $where[] = "s.code IN ($secMarks)";
         foreach ($allowedSections as $sc) $params[] = $sc;
 
-        if (!empty($filters['section_code'])) {
+        if (!empty($filters['section_code']) && empty($filters['category_id'])) {
             if (in_array($filters['section_code'], $allowedSections, true)) {
                 $where[] = "s.code = ?";
                 $params[] = $filters['section_code'];

@@ -45,10 +45,10 @@ foreach ($trees as $t) $flatten($t);
                     </select>
                 </label>
                 <label class="select"><span>Parent (optional)</span>
-                    <select name="parent_id">
+                    <select name="parent_id" id="parent-select">
                         <option value="">— none (top level) —</option>
                         <?php foreach ($flat as $c): ?>
-                        <option value="<?= (int) $c['id'] ?>"><?= e($c['name']) ?></option>
+                        <option value="<?= (int) $c['id'] ?>" data-section="<?= (int) $c['section_id'] ?>"><?= e($c['name']) ?></option>
                         <?php endforeach; ?>
                     </select>
                 </label>
@@ -65,3 +65,24 @@ foreach ($trees as $t) $flatten($t);
         <?php endforeach; ?>
     </section>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const sectionSelect = document.querySelector('select[name="section_id"]');
+    const parentSelect = document.getElementById('parent-select');
+    if (!sectionSelect || !parentSelect) return;
+    
+    const allOptions = [...parentSelect.querySelectorAll('option[data-section]')];
+    
+    function filterParents() {
+        const selectedSection = sectionSelect.value;
+        parentSelect.value = '';
+        allOptions.forEach(opt => {
+            opt.style.display = opt.dataset.section === selectedSection ? '' : 'none';
+        });
+    }
+    
+    sectionSelect.addEventListener('change', filterParents);
+    filterParents();
+});
+</script>

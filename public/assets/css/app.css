@@ -649,3 +649,98 @@ select,
 .play-overlay svg {
   width: 44px; height: 44px; fill: white; filter: drop-shadow(0 2px 8px rgba(0,0,0,.5));
 }
+
+
+/* ---------- LOGIN FORM FIXES ---------- */
+.auth-brand {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  margin-bottom: 1.75rem;
+}
+.auth-brand .brand-mark.big {
+  margin: 0 auto; display: flex; align-items: center; justify-content: center;
+}
+
+.password-field { display: flex; flex-direction: column; gap: .35rem; }
+.input-with-icon {
+  position: relative; display: flex; align-items: center;
+}
+.input-with-icon input {
+  width: 100%; padding-right: 3rem;
+}
+.pw-toggle-btn {
+  position: absolute; right: .65rem; top: 50%; transform: translateY(-50%);
+  background: none; border: none; padding: 4px; cursor: pointer;
+  color: var(--text-muted); display: flex; align-items: center; justify-content: center;
+  border-radius: 6px; transition: color var(--speed), background var(--speed);
+}
+.pw-toggle-btn:hover { color: var(--accent); background: var(--accent-soft); }
+
+.auth-options {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.remember-check {
+  display: flex; align-items: center; gap: .4rem; font-size: 13px; color: var(--text-muted); cursor: pointer;
+}
+.remember-check input { accent-color: var(--accent); width: 15px; height: 15px; }
+.remember-check span { text-transform: none; letter-spacing: 0; }
+
+/* ---------- GLOBAL FORM POLISH ---------- */
+input, select, textarea {
+  background: var(--bg-2) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent) !important;
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+input::placeholder, textarea::placeholder { color: var(--text-muted); opacity: .7; }
+
+/* Admin forms proper spacing */
+.grid-form {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem; align-items: start; margin-top: 1rem;
+}
+.grid-form label {
+  display: flex; flex-direction: column; gap: .4rem;
+}
+.grid-form label > span, .grid-form label > small {
+  font-size: 11.5px; text-transform: uppercase; color: var(--text-muted);
+  letter-spacing: .06em; font-weight: 600;
+}
+.grid-form input, .grid-form select, .grid-form textarea {
+  padding: .65rem .85rem; border-radius: 10px; width: 100%;
+}
+.grid-form .perm-grid {
+  grid-column: 1 / -1; display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: .5rem; padding: .75rem; border: 1px solid var(--border); border-radius: 12px;
+}
+.grid-form .perm-grid label {
+  flex-direction: row; align-items: center; gap: .4rem; font-size: 13px;
+}
+.grid-form .btn-primary { grid-column: 1 / -1; justify-self: start; }
+
+/* Row edit in admin tables - wider */
+.row-edit { min-width: 320px; }
+.row-edit .grid-form { grid-template-columns: 1fr 1fr; }
+
+/* Upload form categories - cleaner look */
+.upload-meta .cat-section-card { margin-bottom: .5rem; border-radius: 10px; }
+.upload-meta .cat-section-header { padding: .55rem .75rem; font-size: 13px; border-radius: 10px; }
+.upload-meta .cat-section-body { padding: .5rem .75rem; max-height: 240px; overflow-y: auto; }
+.upload-meta .cat-pick { padding: .3rem 0; font-size: 13px; }
+
+/* Section-based category visibility */
+.cat-group[data-section] { display: none; }
+.cat-group.active { display: block; }
+
+/* ---------- OFFLINE INDICATOR ---------- */
+.offline-badge {
+  position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%);
+  padding: .5rem 1.25rem; border-radius: 999px; z-index: 100;
+  background: var(--warning); color: #1a1a1a; font-weight: 600; font-size: 13px;
+  box-shadow: var(--shadow-md); display: none;
+}
+.offline-badge.visible { display: block; }

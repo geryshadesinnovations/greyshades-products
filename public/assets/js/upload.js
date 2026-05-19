@@ -176,4 +176,35 @@
             btn.classList.toggle('open', !isOpen);
         });
     });
+
+    // --- Section toggle: show/hide category groups based on checked sections ---
+    const sectionToggles = document.querySelectorAll('[data-section-toggle]');
+    const catGroups = document.querySelectorAll('.cat-group[data-section]');
+    
+    function updateCatVisibility() {
+        const checkedSections = [...sectionToggles]
+            .filter(cb => cb.checked)
+            .map(cb => cb.value);
+        catGroups.forEach(g => {
+            g.classList.toggle('active', checkedSections.includes(g.dataset.section));
+        });
+    }
+    
+    sectionToggles.forEach(cb => cb.addEventListener('change', updateCatVisibility));
+    updateCatVisibility(); // initial state
+
+    // --- Auto-select parent categories when child is checked ---
+    document.querySelectorAll('input[name="categories[]"]').forEach(cb => {
+        cb.addEventListener('change', () => {
+            if (!cb.checked) return;
+            // Walk up the DOM to find parent category checkboxes
+            let el = cb.closest('.cat-section-body') || cb.parentElement;
+            if (!el) return;
+            const card = cb.closest('.cat-section-card');
+            if (card) {
+                const parentCb = card.querySelector('input[name="categories[]"]');
+                if (parentCb && parentCb !== cb) parentCb.checked = true;
+            }
+        });
+    });
 })();

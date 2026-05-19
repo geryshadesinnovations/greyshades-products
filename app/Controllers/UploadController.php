@@ -52,10 +52,20 @@ final class UploadController
             $this->jsonError('File type not allowed: ' . $mime);
         }
 
-        $sectionCode = (string) ($_POST['section'] ?? '');
-        $section = Section::findByCode($sectionCode);
-        if (!$section || !Auth::canSection($sectionCode)) {
-            $this->jsonError('Invalid or unauthorised section.');
+        // Support multiple sections - use first as primary
+        $sectionCodes = (array) ($_POST['sections'] ?? []);
+        // Fallback to legacy single section field
+        if (empty($sectionCodes)) {
+            $sc = (string) ($_POST['section'] ?? '');
+            if ($sc) $sectionCodes = [$sc];
+        }
+        $sectionCodes = array_filter($sectionCodes, fn($c) => Auth::canSection($c));
+        if (empty($sectionCodes)) {
+            $this->jsonError('Please select at least one section.');
+        }
+        $section = Section::findByCode($sectionCodes[0]);
+        if (!$section) {
+            $this->jsonError('Invalid section.');
         }
 
         $title = trim((string) ($_POST['title'] ?? pathinfo($file['name'], PATHINFO_FILENAME)));
