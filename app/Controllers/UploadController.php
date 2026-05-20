@@ -6,6 +6,7 @@ namespace App\Controllers;
 use App\Core\ActivityLog;
 use App\Core\Auth;
 use App\Core\Csrf;
+use App\Core\Database;
 use App\Models\Category;
 use App\Models\Media;
 use App\Models\Occasion;
@@ -52,21 +53,37 @@ final class UploadController
             $this->jsonError('File type not allowed: ' . $mime);
         }
 
-        // Support multiple sections - use first as primary
-        $sectionCodes = (array) ($_POST['sections'] ?? []);
-        // Fallback to legacy single section field
-        if (empty($sectionCodes)) {
-            $sc = (string) ($_POST['section'] ?? '');
-            if ($sc) $sectionCodes = [$sc];
+        // Categories drive the section now. The section is automatically derived
+        // from each selected category's section_id - the first one becomes the
+        // primary section_id on the media row, but media_categories rows record
+        // every category exactly so dashboard filters keep working.
+        $catIds = array_filter(array_map('intval', (array) ($_POST['categories'] ?? [])));
+        if (empty($catIds)) {
+            $this->jsonError('Please select at least one category.');
         }
-        $sectionCodes = array_filter($sectionCodes, fn($c) => Auth::canSection($c));
-        if (empty($sectionCodes)) {
-            $this->jsonError('Please select at least one section.');
+
+        // Look up section for every chosen category, validate user access.
+        $marks = implode(',', array_fill(0, count($catIds), '?'));
+        $catRows = Database::all(
+            "SELECT c.id, c.section_id, s.code AS section_code
+             FROM categories c JOIN sections s ON s.id = c.section_id
+             WHERE c.id IN ($marks)",
+            $catIds
+        );
+        if (count($catRows) !== count($catIds)) {
+            $this->jsonError('One or more selected categories are invalid.');
         }
-        $section = Section::findByCode($sectionCodes[0]);
-        if (!$section) {
-            $this->jsonError('Invalid section.');
+        // Filter out categories whose section the user cannot access.
+        $allowedRows = array_values(array_filter(
+            $catRows,
+            fn ($r) => Auth::canSection((string) $r['section_code'])
+        ));
+        if (empty($allowedRows)) {
+            $this->jsonError('You do not have permission to upload to the selected categories.');
         }
+        $primarySectionId = (int) $allowedRows[0]['section_id'];
+        // Re-build the validated category id list (only those the user can access).
+        $catIds = array_map(fn ($r) => (int) $r['id'], $allowedRows);
 
         $title = trim((string) ($_POST['title'] ?? pathinfo($file['name'], PATHINFO_FILENAME)));
         if ($title === '') $this->jsonError('Title is required.');
@@ -106,7 +123,7 @@ final class UploadController
         // Insert DB row
         $mediaId = Media::create([
             'uuid'              => $uuid,
-            'section_id'        => (int) $section['id'],
+            'section_id'        => $primarySectionId,
             'title'             => $title,
             'description'       => $_POST['description'] ?? null,
             'keywords'          => $_POST['keywords'] ?? null,
@@ -127,8 +144,8 @@ final class UploadController
         ]);
 
         // Categories / occasions / tags
-        $cats = array_filter((array) ($_POST['categories'] ?? []));
-        if ($cats) Media::attachCategories($mediaId, $cats);
+        Media::attachCategories($mediaId, $catIds);
+
         $occs = array_filter((array) ($_POST['occasions'] ?? []));
         if ($occs) Media::attachOccasions($mediaId, $occs);
 

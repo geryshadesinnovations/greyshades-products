@@ -30,11 +30,6 @@ $this->extend('layouts/auth');
                 </button>
             </div>
         </label>
-        <div class="auth-options">
-            <label class="remember-check">
-                <input type="checkbox" name="remember" value="1"> <span>Remember me</span>
-            </label>
-        </div>
         <button type="submit" class="btn-primary btn-block">Sign in</button>
         <p class="auth-hint">Authorised personnel only. All activity is monitored and logged.</p>
     </form>

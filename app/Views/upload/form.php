@@ -9,37 +9,91 @@
 use App\Core\Csrf;
 $this->extend('layouts/app');
 
-// Render category tree as collapsible accordion cards
-$renderCatAccordion = function ($nodes, $depth = 0) use (&$renderCatAccordion) {
+/**
+ * Render a top-level category card (Gimmick / Art / Hybrid / Events / etc.)
+ * Each card has its own scrollable body and a data-cat-root attribute that the
+ * client uses to enforce mutual-exclusion rules between Gimmick and Art.
+ */
+$renderRootCard = function (array $node, string $sectionName, string $sectionCode, ?string $exclusiveGroup = null) use (&$renderTree) {
+    $rootSlug = (string) $node['slug'];
+    echo '<div class="cat-card" data-cat-root="' . e($rootSlug) . '"';
+    if ($exclusiveGroup) echo ' data-exclusive="' . e($exclusiveGroup) . '"';
+    echo '>';
+
+    // Header
+    echo '<button type="button" class="cat-card-header" data-accordion>';
+    echo '<svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>';
+    echo '<span class="cat-card-name">' . e($node['name']) . '</span>';
+    echo '<span class="cat-card-section">' . e($sectionName) . '</span>';
+    echo '<span class="cat-card-count" hidden>0</span>';
+    echo '</button>';
+
+    // Body (scrollable)
+    echo '<div class="cat-card-body">';
+    echo '<label class="cat-pick cat-pick-all"><input form="upload-form" type="checkbox" name="categories[]" value="' . (int)$node['id'] . '" data-section="' . e($sectionCode) . '" data-cat-root="' . e($rootSlug) . '"';
+    if ($exclusiveGroup) echo ' data-exclusive="' . e($exclusiveGroup) . '"';
+    echo '><span class="cat-pick-label"><strong>All ' . e($node['name']) . '</strong></span></label>';
+
+    if (!empty($node['children'])) {
+        $renderTree($node['children'], $sectionCode, $rootSlug, $exclusiveGroup, 0);
+    }
+    echo '</div>';
+    echo '</div>';
+};
+
+/**
+ * Render the children of a category card recursively. The data-section /
+ * data-cat-root / data-exclusive attributes propagate down so all checkboxes
+ * inside a card share the same exclusion group.
+ */
+$renderTree = function (array $nodes, string $sectionCode, string $rootSlug, ?string $exclusiveGroup, int $depth) use (&$renderTree) {
     foreach ($nodes as $n) {
         $hasChildren = !empty($n['children']);
-        if ($hasChildren && $depth === 0) {
-            // Top-level category = accordion card
-            echo '<div class="cat-section-card">';
-            echo '<button type="button" class="cat-section-header" data-accordion>';
-            echo '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>';
-            echo ' <span>' . e($n['name']) . '</span>';
+        $indent = $depth * 14;
+        $extraAttrs = ' data-section="' . e($sectionCode) . '" data-cat-root="' . e($rootSlug) . '"';
+        if ($exclusiveGroup) $extraAttrs .= ' data-exclusive="' . e($exclusiveGroup) . '"';
+
+        if ($hasChildren) {
+            // Render as nested accordion
+            echo '<div class="cat-sub" style="margin-left:' . $indent . 'px">';
+            echo '<button type="button" class="cat-sub-header" data-accordion>';
+            echo '<svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>';
+            echo '<label class="cat-pick cat-pick-inline" onclick="event.stopPropagation()">';
+            echo '<input form="upload-form" type="checkbox" name="categories[]" value="' . (int)$n['id'] . '"' . $extraAttrs . '>';
+            echo '<span class="cat-pick-label">' . e($n['name']) . '</span>';
+            echo '</label>';
             echo '</button>';
-            echo '<div class="cat-section-body">';
-            echo '<label class="cat-pick"><input form="upload-form" type="checkbox" name="categories[]" value="' . (int)$n['id'] . '"> <strong>All ' . e($n['name']) . '</strong></label>';
-            $renderCatAccordion($n['children'], $depth + 1);
-            echo '</div></div>';
-        } elseif ($hasChildren) {
-            // Nested parent - show as sub-group
-            echo '<div style="margin-left:' . (($depth - 1) * 12) . 'px; margin-top:.35rem">';
-            echo '<label class="cat-pick" style="font-weight:600"><input form="upload-form" type="checkbox" name="categories[]" value="' . (int)$n['id'] . '"> ' . e($n['name']) . '</label>';
-            $renderCatAccordion($n['children'], $depth + 1);
+            echo '<div class="cat-sub-body">';
+            $renderTree($n['children'], $sectionCode, $rootSlug, $exclusiveGroup, $depth + 1);
+            echo '</div>';
             echo '</div>';
         } else {
-            echo '<label class="cat-pick" style="padding-left:' . (($depth - 1) * 12) . 'px"><input form="upload-form" type="checkbox" name="categories[]" value="' . (int)$n['id'] . '"> ' . e($n['name']) . '</label>';
+            echo '<label class="cat-pick" style="margin-left:' . $indent . 'px">';
+            echo '<input form="upload-form" type="checkbox" name="categories[]" value="' . (int)$n['id'] . '"' . $extraAttrs . '>';
+            echo '<span class="cat-pick-label">' . e($n['name']) . '</span>';
+            echo '</label>';
         }
     }
 };
+
+// Sort top-level categories so Hybrid sits between Gimmick/Art and Events.
+$rootCards = [];
+foreach ($sections as $s) {
+    foreach ($trees[$s['code']] ?? [] as $rootNode) {
+        $rootCards[] = [
+            'node'             => $rootNode,
+            'section_code'     => (string) $s['code'],
+            'section_name'     => (string) $s['name'],
+            // Mutual-exclusion: Gimmick and Art cancel each other out.
+            'exclusive_group'  => in_array($rootNode['slug'], ['gimmick','art'], true) ? 'gimmick-art' : null,
+        ];
+    }
+}
 ?>
 <div class="upload-page">
     <div class="upload-header">
         <h1>Upload media</h1>
-        <p class="muted">Drop files anywhere. Max <?= (int) $maxMb ?> MB per file. Duplicate files (same hash) are auto-detected.</p>
+        <p class="muted">Drop a file, pick the categories it belongs to, and we'll do the rest. The same file is stored once and shows up in every category you select.</p>
     </div>
 
     <div class="upload-grid">
@@ -91,26 +145,28 @@ $renderCatAccordion = function ($nodes, $depth = 0) use (&$renderCatAccordion) {
                 </div>
             </div>
 
-            <!-- Section 2: Section & Categories -->
+            <!-- Section 2: Where does this go? (categories) -->
             <div class="form-section">
                 <div class="form-section-title">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-                    Section &amp; Categories
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                    Where does this go?
                 </div>
                 <div class="form-section-body">
-                    <fieldset>
-                        <legend>Section (select where this media appears)</legend>
-                        <?php foreach ($sections as $i => $s): ?>
-                        <label class="cat-pick"><input form="upload-form" type="checkbox" name="sections[]" value="<?= e($s['code']) ?>" <?= $i === 0 ? 'checked' : '' ?> data-section-toggle="<?= e($s['code']) ?>"> <?= e($s['name']) ?></label>
-                        <?php endforeach; ?>
-                    </fieldset>
+                    <p class="form-hint">
+                        Sections are decided automatically from the categories you tick.
+                        <br><strong>Note:</strong> Gimmick and Art are mutually exclusive — Hybrid and Events can mix freely.
+                    </p>
 
-                    <?php foreach ($sections as $s): ?>
-                    <div class="cat-group" data-section="<?= e($s['code']) ?>">
-                        <h4 style="margin:0 0 .5rem;font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em"><?= e($s['name']) ?></h4>
-                        <?php $renderCatAccordion($trees[$s['code']] ?? []); ?>
+                    <div id="cat-summary" class="cat-summary" hidden>
+                        <span class="cat-summary-label">Selected:</span>
+                        <span class="cat-summary-chips"></span>
                     </div>
-                    <?php endforeach; ?>
+
+                    <div class="cat-grid">
+                        <?php foreach ($rootCards as $rc): ?>
+                            <?php $renderRootCard($rc['node'], $rc['section_name'], $rc['section_code'], $rc['exclusive_group']); ?>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
             </div>
 
@@ -118,18 +174,22 @@ $renderCatAccordion = function ($nodes, $depth = 0) use (&$renderCatAccordion) {
             <div class="form-section">
                 <div class="form-section-title">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                    Occasions
+                    Occasions <span class="muted">(optional)</span>
                 </div>
                 <div class="form-section-body">
                     <?php foreach ($occasions as $code => $g): ?>
-                    <div class="cat-section-card">
-                        <button type="button" class="cat-section-header" data-accordion>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
-                            <span><?= e($g['name']) ?></span>
+                    <div class="cat-card">
+                        <button type="button" class="cat-card-header" data-accordion>
+                            <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+                            <span class="cat-card-name"><?= e($g['name']) ?></span>
+                            <span class="cat-card-count" hidden>0</span>
                         </button>
-                        <div class="cat-section-body">
+                        <div class="cat-card-body">
                             <?php foreach ($g['items'] as $o): ?>
-                            <label class="cat-pick"><input form="upload-form" type="checkbox" name="occasions[]" value="<?= (int) $o['id'] ?>"> <?= e($o['name']) ?></label>
+                            <label class="cat-pick">
+                                <input form="upload-form" type="checkbox" name="occasions[]" value="<?= (int) $o['id'] ?>" data-occasion="1">
+                                <span class="cat-pick-label"><?= e($o['name']) ?></span>
+                            </label>
                             <?php endforeach; ?>
                         </div>
                     </div>
@@ -144,7 +204,10 @@ $renderCatAccordion = function ($nodes, $depth = 0) use (&$renderCatAccordion) {
                     Settings
                 </div>
                 <div class="form-section-body">
-                    <label class="cat-pick"><input form="upload-form" type="checkbox" name="is_downloadable" value="1"> Allow downloads</label>
+                    <label class="cat-pick">
+                        <input form="upload-form" type="checkbox" name="is_downloadable" value="1">
+                        <span class="cat-pick-label">Allow downloads</span>
+                    </label>
                 </div>
             </div>
 

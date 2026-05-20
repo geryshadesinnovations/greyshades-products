@@ -1,4 +1,11 @@
-/* Greyshades - drag & drop uploader with progress bar + media preview */
+/* Greyshades upload form
+ * - Drag & drop file picker with progress + media preview
+ * - Category selection drives the section (no separate section checkboxes)
+ * - Mutual-exclusion between Gimmick and Art (data-exclusive="gimmick-art")
+ * - Auto-tick parent category when a child is selected
+ * - Live "Selected" summary chips at the top of the categories panel
+ * - Live count badge on each category accordion header
+ */
 (() => {
     'use strict';
 
@@ -14,45 +21,47 @@
     const titleInput = form.querySelector('input[name="title"]');
     const submitBtn  = document.getElementById('upload-submit-btn');
 
-    // Preview elements
     const previewWrap  = document.getElementById('upload-preview');
     const previewVideo = document.getElementById('preview-video');
     const previewImage = document.getElementById('preview-image');
     const previewPdf   = document.getElementById('preview-pdf');
     const previewPpt   = document.getElementById('preview-ppt');
 
-    let selectedFile = null;
+    const summaryWrap = document.getElementById('cat-summary');
+    const summaryChips = summaryWrap?.querySelector('.cat-summary-chips');
 
+    const escapeHtml = (s) => String(s).replace(/[&<>"']/g, c =>
+        ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const bytes = (n) => {
+        const u = ['B','KB','MB','GB','TB']; let i = 0;
+        while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+        return n.toFixed(2) + ' ' + u[i];
+    };
+
+    /* ---------- File picker ---------- */
     const showInfo = (file) => {
         info.hidden = false;
         info.innerHTML =
-            '<div><strong>' + escape(file.name) + '</strong></div>' +
-            '<div class="muted small">' + (file.type || 'unknown') + ' · ' + bytes(file.size) + '</div>';
+            '<div><strong>' + escapeHtml(file.name) + '</strong></div>' +
+            '<div class="muted small">' + escapeHtml(file.type || 'unknown') + ' · ' + bytes(file.size) + '</div>';
         if (titleInput && !titleInput.value.trim()) {
             titleInput.value = file.name.replace(/\.[^.]+$/, '');
         }
     };
 
     const showPreview = (file) => {
-        // Hide all previews first
         [previewVideo, previewImage, previewPdf, previewPpt].forEach(el => { if (el) el.style.display = 'none'; });
         if (!previewWrap) return;
         previewWrap.classList.remove('visible');
-
         const type = file.type || '';
         const ext = file.name.split('.').pop().toLowerCase();
-
         if (type.startsWith('video/') || ext === 'mp4') {
-            const url = URL.createObjectURL(file);
-            previewVideo.src = url;
+            previewVideo.src = URL.createObjectURL(file);
             previewVideo.style.display = 'block';
-            previewVideo.onloadeddata = () => previewWrap.classList.add('visible');
             previewWrap.classList.add('visible');
         } else if (type.startsWith('image/') || ['png','jpg','jpeg','webp','gif'].includes(ext)) {
-            const url = URL.createObjectURL(file);
-            previewImage.src = url;
+            previewImage.src = URL.createObjectURL(file);
             previewImage.style.display = 'block';
-            previewImage.onload = () => previewWrap.classList.add('visible');
             previewWrap.classList.add('visible');
         } else if (type === 'application/pdf' || ext === 'pdf') {
             previewPdf.style.display = 'block';
@@ -63,15 +72,7 @@
         }
     };
 
-    const escape = (s) => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    const bytes  = (n) => {
-        const u = ['B','KB','MB','GB','TB']; let i = 0;
-        while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
-        return n.toFixed(2) + ' ' + u[i];
-    };
-
     const selectFile = (file) => {
-        selectedFile = file;
         const dt = new DataTransfer();
         dt.items.add(file);
         input.files = dt.files;
@@ -98,13 +99,19 @@
         if (input.files?.length) selectFile(input.files[0]);
     });
 
-    // Manual submit via the button
+    /* ---------- Submit ---------- */
     if (submitBtn) {
         submitBtn.addEventListener('click', () => {
             if (!input.files?.length) {
-                // Flash the drop area
                 drop.classList.add('dragover');
                 setTimeout(() => drop.classList.remove('dragover'), 600);
+                return;
+            }
+            const checked = form.querySelectorAll('input[name="categories[]"]:checked').length;
+            if (checked === 0) {
+                result.className = 'upload-result error';
+                result.textContent = 'Please pick at least one category.';
+                result.hidden = false;
                 return;
             }
             submit();
@@ -114,36 +121,34 @@
     const submit = () => {
         const fd  = new FormData(form);
         const xhr = new XMLHttpRequest();
-
         progress.hidden = false; bar.style.width = '0%';
         result.hidden = true; result.classList.remove('success','error','duplicate');
         if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Uploading...'; }
 
         xhr.upload.addEventListener('progress', (e) => {
-            if (e.lengthComputable) {
-                bar.style.width = ((e.loaded / e.total) * 100).toFixed(1) + '%';
-            }
+            if (e.lengthComputable) bar.style.width = ((e.loaded / e.total) * 100).toFixed(1) + '%';
         });
         xhr.addEventListener('load', () => {
-            if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg> Upload file'; }
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg> Upload file';
+            }
             try {
                 const data = JSON.parse(xhr.responseText);
                 if (xhr.status >= 200 && xhr.status < 300 && data.ok) {
                     if (data.duplicate) {
                         result.className = 'upload-result duplicate';
-                        result.innerHTML = (data.message || 'Duplicate file detected.') +
-                          ' <a href="' + data.media.url + '">View existing</a>';
+                        result.innerHTML = (data.message || 'Duplicate file detected.') + ' <a href="' + data.media.url + '">View existing</a>';
                     } else {
                         result.className = 'upload-result success';
                         result.innerHTML = 'Upload successful! <a href="' + data.media.url + '">View media</a>';
                         input.value = ''; info.hidden = true;
-                        selectedFile = null;
                         if (previewWrap) previewWrap.classList.remove('visible');
                         [previewVideo, previewImage, previewPdf, previewPpt].forEach(el => { if (el) el.style.display = 'none'; });
                     }
                 } else {
                     result.className = 'upload-result error';
-                    result.textContent = data.error || 'Upload failed.';
+                    result.textContent = (data && data.error) || 'Upload failed.';
                 }
             } catch (err) {
                 result.className = 'upload-result error';
@@ -153,47 +158,146 @@
             setTimeout(() => { progress.hidden = true; bar.style.width = '0%'; }, 800);
         });
         xhr.addEventListener('error', () => {
-            if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg> Upload file'; }
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg> Upload file';
+            }
             result.className = 'upload-result error';
             result.textContent = 'Network error.';
             result.hidden = false;
             progress.hidden = true;
         });
-
         xhr.open('POST', form.action);
         const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
         if (csrf) xhr.setRequestHeader('X-CSRF-TOKEN', csrf);
         xhr.send(fd);
     };
 
-    // --- Section toggle: show/hide category groups based on checked sections ---
-    const sectionToggles = document.querySelectorAll('[data-section-toggle]');
-    const catGroups = document.querySelectorAll('.cat-group[data-section]');
-    
-    function updateCatVisibility() {
-        const checkedSections = [...sectionToggles]
-            .filter(cb => cb.checked)
-            .map(cb => cb.value);
-        catGroups.forEach(g => {
-            g.classList.toggle('active', checkedSections.includes(g.dataset.section));
-        });
-    }
-    
-    sectionToggles.forEach(cb => cb.addEventListener('change', updateCatVisibility));
-    updateCatVisibility(); // initial state
+    /* ---------- Category selection logic ---------- */
+    const catCheckboxes = () => form.querySelectorAll('input[name="categories[]"]');
 
-    // --- Auto-select parent categories when child is checked ---
-    document.querySelectorAll('input[name="categories[]"]').forEach(cb => {
-        cb.addEventListener('change', () => {
-            if (!cb.checked) return;
-            // Walk up the DOM to find parent category checkboxes
-            let el = cb.closest('.cat-section-body') || cb.parentElement;
-            if (!el) return;
-            const card = cb.closest('.cat-section-card');
-            if (card) {
-                const parentCb = card.querySelector('input[name="categories[]"]');
-                if (parentCb && parentCb !== cb) parentCb.checked = true;
+    /**
+     * Enforce mutual exclusion between checkboxes that share a data-exclusive
+     * group BUT belong to a different data-cat-root (e.g. Gimmick vs Art).
+     * Inside the same root the checkboxes are always allowed together.
+     */
+    const applyExclusion = (changed) => {
+        const group = changed.dataset.exclusive;
+        if (!group || !changed.checked) return;
+        const myRoot = changed.dataset.catRoot;
+
+        catCheckboxes().forEach(cb => {
+            if (cb === changed) return;
+            if (cb.dataset.exclusive !== group) return;
+            if (cb.dataset.catRoot === myRoot) return; // same root is fine
+            cb.checked = false;
+        });
+    };
+
+    /**
+     * When a card is "disabled" by the exclusion rule, dim it visually so the
+     * user understands why those checkboxes are off. The disabling is purely
+     * cosmetic - the user can still click items in the disabled card, which
+     * will then disable the previously-active card instead.
+     */
+    const refreshCardStates = () => {
+        // For each exclusive group, find the active root (the one with any tick)
+        // and mark all OTHER roots in that group as .dimmed.
+        const groupActiveRoots = new Map();   // group -> Set<rootSlug>
+        catCheckboxes().forEach(cb => {
+            if (!cb.checked || !cb.dataset.exclusive) return;
+            const set = groupActiveRoots.get(cb.dataset.exclusive) || new Set();
+            set.add(cb.dataset.catRoot);
+            groupActiveRoots.set(cb.dataset.exclusive, set);
+        });
+
+        document.querySelectorAll('.cat-card[data-exclusive]').forEach(card => {
+            const group = card.dataset.exclusive;
+            const root  = card.dataset.catRoot;
+            const active = groupActiveRoots.get(group);
+            const dim = active && active.size > 0 && !active.has(root);
+            card.classList.toggle('dimmed', !!dim);
+        });
+    };
+
+    /** Auto-tick the "All <Root>" checkbox when any descendant is ticked. */
+    const ensureRootTicked = (cb) => {
+        if (!cb.checked) return;
+        const card = cb.closest('.cat-card');
+        if (!card) return;
+        const all = card.querySelector('.cat-pick-all input[type="checkbox"]');
+        if (all && all !== cb && !all.checked) all.checked = true;
+    };
+
+    /** Auto-tick the immediate parent inside a nested .cat-sub. */
+    const ensureSubParentTicked = (cb) => {
+        if (!cb.checked) return;
+        const sub = cb.closest('.cat-sub');
+        if (!sub) return;
+        const parentCb = sub.querySelector(':scope > .cat-sub-header input[type="checkbox"]');
+        if (parentCb && parentCb !== cb && !parentCb.checked) parentCb.checked = true;
+    };
+
+    /** Update count badge on each card header + the summary chips at top. */
+    const refreshCounts = () => {
+        const labelByValue = new Map();
+        catCheckboxes().forEach(cb => {
+            const lbl = cb.closest('label')?.querySelector('.cat-pick-label')?.textContent?.trim() || '';
+            labelByValue.set(cb.value, lbl);
+        });
+
+        document.querySelectorAll('.cat-card').forEach(card => {
+            const ticked = card.querySelectorAll('input[type="checkbox"]:checked').length;
+            const badge = card.querySelector('.cat-card-count');
+            if (badge) {
+                badge.textContent = String(ticked);
+                badge.hidden = ticked === 0;
             }
+            card.classList.toggle('has-selection', ticked > 0);
+        });
+
+        if (summaryWrap && summaryChips) {
+            const ticked = [...catCheckboxes()].filter(cb => cb.checked);
+            if (ticked.length === 0) {
+                summaryWrap.hidden = true;
+                summaryChips.innerHTML = '';
+            } else {
+                summaryWrap.hidden = false;
+                summaryChips.innerHTML = ticked.map(cb => {
+                    const label = cb.closest('label')?.querySelector('.cat-pick-label')?.textContent?.trim() || '';
+                    return '<button type="button" class="cat-summary-chip" data-uncheck="' + escapeHtml(cb.value) + '">' +
+                           escapeHtml(label) +
+                           '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>' +
+                           '</button>';
+                }).join('');
+            }
+        }
+    };
+
+    /** Wire up summary chips so clicking a chip removes that selection. */
+    summaryChips?.addEventListener('click', (e) => {
+        const chip = e.target.closest('[data-uncheck]');
+        if (!chip) return;
+        const val = chip.getAttribute('data-uncheck');
+        const cb = form.querySelector('input[name="categories[]"][value="' + CSS.escape(val) + '"]');
+        if (cb) {
+            cb.checked = false;
+            cb.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    });
+
+    /** Master change handler for category checkboxes. */
+    catCheckboxes().forEach(cb => {
+        cb.addEventListener('change', () => {
+            applyExclusion(cb);
+            ensureRootTicked(cb);
+            ensureSubParentTicked(cb);
+            refreshCardStates();
+            refreshCounts();
         });
     });
+
+    // Initial paint
+    refreshCardStates();
+    refreshCounts();
 })();

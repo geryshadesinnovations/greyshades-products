@@ -957,3 +957,380 @@ input[type="radio"]:not(.no-style) {
   margin-top: -.25rem;
   margin-bottom: .25rem;
 }
+
+
+
+/* ===========================================================================
+ * v4 polish:
+ *  - new "categories drive sections" upload UI (cat-card / cat-sub / summary)
+ *  - mutual-exclusion dimming for Gimmick vs Art
+ *  - properly centered, larger checkmark glyph
+ *  - mobile header / dashboard fixes (overlap, overflow, profile out of view)
+ *  - fix mobile dashboard sidebar/filters overlap
+ * ========================================================================= */
+
+/* ---------- Checkbox tick: fully centered, larger, thicker ---------- */
+.cat-pick input[type="checkbox"],
+.remember-check input[type="checkbox"],
+.perm-grid input[type="checkbox"],
+.row-edit input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 20px; height: 20px;
+    flex-shrink: 0;
+    border: 2px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-2);
+    cursor: pointer;
+    position: relative;
+    transition: border-color var(--speed), background var(--speed), box-shadow var(--speed);
+    margin: 0;
+    vertical-align: middle;
+    /* Use flex centering for the ::after glyph so it sits perfectly centered */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.cat-pick input[type="checkbox"]:hover,
+.remember-check input[type="checkbox"]:hover,
+.perm-grid input[type="checkbox"]:hover,
+.row-edit input[type="checkbox"]:hover {
+    border-color: var(--accent);
+}
+.cat-pick input[type="checkbox"]:checked,
+.remember-check input[type="checkbox"]:checked,
+.perm-grid input[type="checkbox"]:checked,
+.row-edit input[type="checkbox"]:checked {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    border-color: var(--accent);
+}
+/* The check glyph - use ::after on the input itself, centered with flex.
+ * Use background-image SVG for a crisp, properly-proportioned tick. */
+.cat-pick input[type="checkbox"]:checked::after,
+.remember-check input[type="checkbox"]:checked::after,
+.perm-grid input[type="checkbox"]:checked::after,
+.row-edit input[type="checkbox"]:checked::after {
+    content: '';
+    width: 14px;
+    height: 14px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: 14px 14px;
+    /* defeat earlier rules that used a CSS rotated-border tick */
+    border: 0;
+    transform: none;
+    position: static;
+    top: auto; left: auto;
+}
+
+/* Radios: keep the gradient dot but a touch bigger */
+.cat-pick input[type="radio"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 20px; height: 20px;
+    flex-shrink: 0;
+    border: 2px solid var(--border);
+    border-radius: 50%;
+    background: var(--bg-2);
+    cursor: pointer;
+    position: relative;
+    transition: border-color var(--speed);
+}
+.cat-pick input[type="radio"]:checked {
+    border-color: var(--accent);
+}
+.cat-pick input[type="radio"]:checked::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+}
+
+/* ---------- New category card UI ---------- */
+.form-hint {
+    margin: 0 0 .85rem;
+    padding: .65rem .85rem;
+    border-radius: 10px;
+    background: var(--accent-soft);
+    color: var(--text);
+    font-size: 12.5px; line-height: 1.5;
+}
+.form-hint strong { color: var(--accent); }
+
+.cat-summary {
+    display: flex; align-items: center; flex-wrap: wrap; gap: .5rem;
+    padding: .65rem .85rem; margin-bottom: .85rem;
+    border-radius: 10px;
+    background: rgba(167,139,250,.08);
+    border: 1px solid rgba(167,139,250,.25);
+}
+.cat-summary-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .07em;
+    color: var(--text-muted); font-weight: 700;
+}
+.cat-summary-chips {
+    display: flex; flex-wrap: wrap; gap: .35rem; flex: 1; min-width: 0;
+}
+.cat-summary-chip {
+    display: inline-flex; align-items: center; gap: .35rem;
+    padding: .25rem .55rem .25rem .65rem;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: white;
+    font-size: 12px; font-weight: 600;
+    border: 0; cursor: pointer;
+    transition: transform var(--speed), box-shadow var(--speed);
+}
+.cat-summary-chip:hover { transform: translateY(-1px); box-shadow: 0 4px 10px var(--accent-soft); }
+.cat-summary-chip svg { opacity: .85; }
+
+.cat-grid {
+    display: grid; grid-template-columns: 1fr; gap: .65rem;
+}
+
+.cat-card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--bg-2);
+    transition: border-color var(--speed), opacity var(--speed);
+}
+.cat-card.has-selection { border-color: rgba(167,139,250,.45); }
+.cat-card.dimmed { opacity: .55; }
+.cat-card.dimmed::before {
+    content: 'Disabled — clear the other one first';
+    display: block;
+    padding: .35rem .85rem;
+    background: rgba(248,113,113,.10);
+    color: var(--danger);
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .04em;
+    border-bottom: 1px solid var(--border);
+}
+
+.cat-card-header {
+    display: flex; align-items: center; gap: .55rem;
+    width: 100%; padding: .75rem .85rem;
+    background: transparent; border: 0; cursor: pointer; color: var(--text);
+    font-size: 14px; font-weight: 600; text-align: left;
+    transition: background var(--speed);
+}
+.cat-card-header:hover { background: var(--accent-soft); }
+.cat-card-header .chev {
+    flex-shrink: 0;
+    color: var(--text-muted);
+    transition: transform var(--speed);
+}
+.cat-card-header.open .chev { transform: rotate(90deg); }
+.cat-card-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cat-card-section {
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .06em;
+    color: var(--text-muted);
+    padding: 2px 8px; border-radius: 6px;
+    background: var(--accent-soft);
+}
+.cat-card-count {
+    flex-shrink: 0;
+    min-width: 22px; height: 22px; padding: 0 6px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: white;
+    font-size: 11px; font-weight: 700;
+}
+
+.cat-card-body {
+    display: none;
+    max-height: 320px;
+    overflow-y: auto;
+    padding: .5rem .85rem .85rem;
+    border-top: 1px solid var(--border);
+}
+.cat-card-body.open { display: block; }
+
+/* Custom scroll for the card body */
+.cat-card-body::-webkit-scrollbar { width: 6px; }
+.cat-card-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+.cat-card-body::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+.cat-pick-all {
+    margin: 0 -.25rem .35rem;
+    padding: .5rem .55rem !important;
+    background: var(--accent-soft);
+    border-radius: 8px;
+    border-bottom: 0 !important;
+}
+
+.cat-sub {
+    border-left: 2px solid var(--border);
+    padding-left: .25rem;
+    margin-top: .35rem;
+}
+.cat-sub-header {
+    display: flex; align-items: center; gap: .35rem;
+    width: 100%; padding: .35rem 0;
+    background: transparent; border: 0; cursor: pointer; color: var(--text);
+    text-align: left;
+}
+.cat-sub-header .chev {
+    flex-shrink: 0; color: var(--text-muted);
+    transition: transform var(--speed);
+}
+.cat-sub-header.open .chev { transform: rotate(90deg); }
+.cat-sub-body { display: none; padding-left: .35rem; }
+.cat-sub-body.open { display: block; }
+.cat-pick-inline { padding: 0 !important; flex: 1; }
+.cat-pick-inline .cat-pick-label { font-weight: 600; }
+
+/* Cat-pick rows inside cards: restore tidy alignment */
+.cat-card-body .cat-pick {
+    padding: .4rem .35rem !important;
+    border-bottom: 0 !important;
+    border-radius: 6px;
+}
+.cat-card-body .cat-pick:hover { background: var(--accent-soft); }
+.cat-pick-label { line-height: 1.3; }
+
+/* ---------- Old "cat-section-*" no longer used in upload form, but keep
+   classes alive for places that still reference them (e.g. Occasions). */
+
+/* Render Occasions-card the same as cat-card. (form already uses cat-card now.) */
+
+/* ---------- TOPBAR / HEADER MOBILE FIX ---------- */
+.topbar {
+    flex-wrap: wrap;
+    row-gap: .5rem;
+    padding: .65rem 1rem;
+    max-width: 100%;
+    overflow: hidden; /* contain anything misbehaving */
+}
+.brand { min-width: 0; flex-shrink: 1; }
+.brand-name { min-width: 0; overflow: hidden; }
+.brand-name span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.topbar-actions { gap: .4rem; }
+.user-chip { max-width: 100%; }
+.user-chip .user-name {
+    max-width: 120px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+    .topbar {
+        padding: .5rem .65rem;
+        gap: .5rem;
+    }
+    .brand-name {
+        /* On very small screens just show the wordmark, drop the small subtitle */
+    }
+    .brand-name small { display: none; }
+
+    /* Make sure the user popover never escapes the viewport */
+    .user-menu .popover {
+        right: 0;
+        left: auto;
+        max-width: calc(100vw - 1rem);
+    }
+
+    /* Hide the user's name beside the avatar - keep just the avatar circle */
+    .user-chip .user-name { display: none; }
+    .user-chip { padding: .35rem; border-radius: 50%; }
+
+    /* Upload button shrinks to icon only */
+    .topbar-actions .btn-primary {
+        padding: .5rem .65rem;
+        font-size: 0;
+    }
+    .topbar-actions .btn-primary svg { width: 18px; height: 18px; }
+}
+
+@media (max-width: 380px) {
+    .brand-name span:first-child { font-size: 14px; }
+    .topbar-actions { gap: .3rem; }
+    .icon-btn { width: 34px; height: 34px; }
+}
+
+/* ---------- DASHBOARD MOBILE FIX (sidebar overlap with filters) ---------- */
+@media (max-width: 960px) {
+    .dashboard {
+        display: flex;
+        flex-direction: column;
+    }
+    .sidebar-toggle {
+        order: 0;
+        align-self: flex-start;
+    }
+    .sidebar {
+        /* When sidebar is opened on mobile it should be a real overlay drawer,
+         * not a static element pushing the filters around. */
+        position: fixed !important;
+        top: 0 !important;
+        bottom: 0;
+        left: 0;
+        width: 84%; max-width: 320px;
+        max-height: 100vh;
+        height: 100vh;
+        z-index: 90;
+        padding: 4rem 1rem 1rem;
+        background: var(--bg-1);
+        border-right: 1px solid var(--border);
+        box-shadow: var(--shadow-lg);
+        transform: translateX(-100%);
+        transition: transform 250ms;
+        display: block !important;
+        overflow-y: auto;
+    }
+    .sidebar.open { transform: translateX(0); }
+
+    /* Backdrop when drawer is open */
+    .sidebar.open::before {
+        content: '';
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,.5);
+        z-index: -1;
+    }
+    .content { order: 1; }
+    .filterbar { width: 100%; }
+}
+
+/* ---------- Upload form responsive tweaks ---------- */
+.upload-meta {
+    /* Was max-height: 80vh + overflow-y: auto.  That cuts off the categories
+     * panel and stops nested scrolls from working.  Let the page scroll do its
+     * job, and let each category card scroll its own body.            */
+    max-height: none;
+    overflow: visible;
+}
+.upload-grid { gap: 1rem; }
+
+@media (max-width: 1024px) {
+    .upload-grid { grid-template-columns: 1fr; }
+    .upload-meta { max-height: none; }
+}
+
+@media (max-width: 600px) {
+    .cat-card-header { padding: .65rem .7rem; font-size: 13.5px; }
+    .cat-card-section { display: none; } /* hide section badge to save space */
+    .cat-card-body { max-height: 260px; padding: .5rem .65rem .65rem; }
+}
+
+/* ---------- Hide stale "section toggle" UI if any remains ---------- */
+.upload-meta fieldset > legend:not(:first-of-type) { /* no-op safeguard */ }
+
+/* Tighten "All <Root>" pill width inside cards */
+.cat-card-body .cat-pick.cat-pick-all {
+    margin-left: 0; margin-right: 0;
+}
+
+/* Filter strip padding-top fix on mobile */
+@media (max-width: 720px) {
+    .tag-strip { padding-top: .5rem; }
+    .filterbar { padding: .85rem .85rem 1rem; }
+    .active-filter-strip { gap: .3rem; margin-top: .65rem; }
+    .filter-form { gap: .55rem; }
+}
