@@ -1334,3 +1334,96 @@ input[type="radio"]:not(.no-style) {
     .active-filter-strip { gap: .3rem; margin-top: .65rem; }
     .filter-form { gap: .55rem; }
 }
+
+
+
+/* ===========================================================================
+ * v5 fixes:
+ *   - Checkbox tick visible in BOTH dark and light themes (the late
+ *     "input { background: var(--bg-2) !important }" rule was overriding
+ *     the gradient on :checked, which meant white-on-white in light mode)
+ *   - Profile / user-menu popover was being clipped by `.topbar { overflow:
+ *     hidden }` so the dropdown could not appear. Restore visibility and
+ *     give the popover a high z-index.
+ *   - Polish the section badge text in light mode.
+ * ========================================================================= */
+
+/* Checkbox base: keep the bg-2 fill but DROP the !important so :checked can
+ * paint the gradient over it. This is achieved by using a more specific
+ * selector and re-asserting the rules without !important. */
+.cat-pick input[type="checkbox"],
+.remember-check input[type="checkbox"],
+.perm-grid input[type="checkbox"],
+.row-edit input[type="checkbox"] {
+    background: var(--bg-2);
+    border: 2px solid var(--border);
+    color: var(--text);
+}
+
+/* :checked - re-apply the gradient with high specificity so it wins over
+ * the global "input { background: var(--bg-2) !important }" rule earlier
+ * in this file. The !important here is a deliberate override of that rule. */
+.cat-pick input[type="checkbox"]:checked,
+.remember-check input[type="checkbox"]:checked,
+.perm-grid input[type="checkbox"]:checked,
+.row-edit input[type="checkbox"]:checked,
+input[type="checkbox"][name="categories[]"]:checked,
+input[type="checkbox"][name="occasions[]"]:checked,
+input[type="checkbox"][name="sections[]"]:checked,
+input[type="checkbox"][name="is_downloadable"]:checked {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2)) !important;
+    border-color: var(--accent) !important;
+}
+
+/* Make sure the SVG check glyph itself is always visible regardless of
+ * whatever else is going on with the input background. */
+.cat-pick input[type="checkbox"]:checked::after,
+.remember-check input[type="checkbox"]:checked::after,
+.perm-grid input[type="checkbox"]:checked::after,
+.row-edit input[type="checkbox"]:checked::after,
+input[type="checkbox"][name="categories[]"]:checked::after,
+input[type="checkbox"][name="occasions[]"]:checked::after,
+input[type="checkbox"][name="sections[]"]:checked::after,
+input[type="checkbox"][name="is_downloadable"]:checked::after {
+    content: '';
+    display: block;
+    width: 14px;
+    height: 14px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    border: 0;
+    transform: none;
+    position: static;
+    margin: auto;
+}
+
+/* Light theme tweak - the section badge inside cat-card needs better
+ * contrast on a white card */
+html[data-theme="light"] .cat-card {
+    background: #ffffff;
+}
+html[data-theme="light"] .cat-card-section {
+    background: var(--accent-soft);
+    color: var(--accent-2);
+}
+
+/* Profile menu fix - the topbar previously had overflow:hidden which clipped
+ * the popover.  Allow overflow on the bar; constrain the brand label and the
+ * search input themselves so we don't break the mobile-overflow fix. */
+.topbar { overflow: visible !important; }
+.brand,
+.brand-name,
+.topbar-search,
+.user-chip { min-width: 0; }
+.brand-name span:first-child { max-width: 60vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* The user-menu popover must always sit on top of the rest of the page */
+.popover { z-index: 200; }
+.user-menu { position: relative; z-index: 70; }
+
+/* Ensure the popover button area receives clicks - some earlier rule with
+ * `pointer-events: none` could be inherited. Reset just for safety. */
+.user-chip,
+.user-chip * { pointer-events: auto; }

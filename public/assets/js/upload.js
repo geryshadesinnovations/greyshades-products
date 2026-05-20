@@ -2,9 +2,15 @@
  * - Drag & drop file picker with progress + media preview
  * - Category selection drives the section (no separate section checkboxes)
  * - Mutual-exclusion between Gimmick and Art (data-exclusive="gimmick-art")
- * - Auto-tick parent category when a child is selected
+ * - Auto-tick parent category when a child is selected (recursively)
  * - Live "Selected" summary chips at the top of the categories panel
  * - Live count badge on each category accordion header
+ *
+ * IMPORTANT: the category checkboxes live in <aside class="upload-meta">,
+ * which is OUTSIDE the <form id="upload-form">. They submit correctly via
+ * the `form="upload-form"` attribute, but DOM queries against the form
+ * element only walk descendants, so we query the document scope instead
+ * via catCheckboxes().
  */
 (() => {
     'use strict';
@@ -18,7 +24,9 @@
     const progress = document.getElementById('progress-wrap');
     const bar      = document.getElementById('progress-bar');
     const result   = document.getElementById('upload-result');
-    const titleInput = form.querySelector('input[name="title"]');
+    // Title input lives in the meta aside, not in the form. Find via owner doc.
+    const titleInput = document.querySelector('input[name="title"][form="upload-form"]')
+                    ?? form.querySelector('input[name="title"]');
     const submitBtn  = document.getElementById('upload-submit-btn');
 
     const previewWrap  = document.getElementById('upload-preview');
@@ -27,8 +35,12 @@
     const previewPdf   = document.getElementById('preview-pdf');
     const previewPpt   = document.getElementById('preview-ppt');
 
-    const summaryWrap = document.getElementById('cat-summary');
+    const summaryWrap  = document.getElementById('cat-summary');
     const summaryChips = summaryWrap?.querySelector('.cat-summary-chips');
+
+    /** All category checkboxes wherever they live in the DOM. */
+    const catCheckboxes = () =>
+        document.querySelectorAll('input[type="checkbox"][name="categories[]"]');
 
     const escapeHtml = (s) => String(s).replace(/[&<>"']/g, c =>
         ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -105,18 +117,25 @@
             if (!input.files?.length) {
                 drop.classList.add('dragover');
                 setTimeout(() => drop.classList.remove('dragover'), 600);
+                showError('Please pick a file to upload first.');
                 return;
             }
-            const checked = form.querySelectorAll('input[name="categories[]"]:checked').length;
+            // Use the document-wide query so we actually count the inputs that
+            // live in <aside class="upload-meta"> via the form attribute.
+            const checked = [...catCheckboxes()].filter(cb => cb.checked).length;
             if (checked === 0) {
-                result.className = 'upload-result error';
-                result.textContent = 'Please pick at least one category.';
-                result.hidden = false;
+                showError('Please pick at least one category.');
                 return;
             }
             submit();
         });
     }
+
+    const showError = (msg) => {
+        result.className = 'upload-result error';
+        result.textContent = msg;
+        result.hidden = false;
+    };
 
     const submit = () => {
         const fd  = new FormData(form);
@@ -174,7 +193,6 @@
     };
 
     /* ---------- Category selection logic ---------- */
-    const catCheckboxes = () => form.querySelectorAll('input[name="categories[]"]');
 
     /**
      * Enforce mutual exclusion between checkboxes that share a data-exclusive
@@ -201,9 +219,7 @@
      * will then disable the previously-active card instead.
      */
     const refreshCardStates = () => {
-        // For each exclusive group, find the active root (the one with any tick)
-        // and mark all OTHER roots in that group as .dimmed.
-        const groupActiveRoots = new Map();   // group -> Set<rootSlug>
+        const groupActiveRoots = new Map();
         catCheckboxes().forEach(cb => {
             if (!cb.checked || !cb.dataset.exclusive) return;
             const set = groupActiveRoots.get(cb.dataset.exclusive) || new Set();
@@ -220,34 +236,37 @@
         });
     };
 
-    /** Auto-tick the "All <Root>" checkbox when any descendant is ticked. */
-    const ensureRootTicked = (cb) => {
+    /**
+     * Auto-tick the "All <Root>" checkbox AND every nested-parent checkbox up
+     * the .cat-sub chain, so that picking "Pop-up" implies "Gimmick" and
+     * picking a deep leaf implies the whole branch above it.
+     */
+    const ensureAncestorsTicked = (cb) => {
         if (!cb.checked) return;
-        const card = cb.closest('.cat-card');
-        if (!card) return;
-        const all = card.querySelector('.cat-pick-all input[type="checkbox"]');
-        if (all && all !== cb && !all.checked) all.checked = true;
-    };
 
-    /** Auto-tick the immediate parent inside a nested .cat-sub. */
-    const ensureSubParentTicked = (cb) => {
-        if (!cb.checked) return;
-        const sub = cb.closest('.cat-sub');
-        if (!sub) return;
-        const parentCb = sub.querySelector(':scope > .cat-sub-header input[type="checkbox"]');
-        if (parentCb && parentCb !== cb && !parentCb.checked) parentCb.checked = true;
+        // Walk up nested .cat-sub blocks: each .cat-sub > .cat-sub-header has
+        // its own checkbox that represents the sub-parent.
+        let node = cb.closest('.cat-sub');
+        while (node) {
+            const parentCb = node.querySelector(':scope > .cat-sub-header input[type="checkbox"][name="categories[]"]');
+            if (parentCb && parentCb !== cb && !parentCb.checked) {
+                parentCb.checked = true;
+            }
+            node = node.parentElement?.closest('.cat-sub') || null;
+        }
+
+        // Always tick the "All <Root>" checkbox at the top of the card.
+        const card = cb.closest('.cat-card');
+        if (card) {
+            const all = card.querySelector('.cat-pick-all input[type="checkbox"][name="categories[]"]');
+            if (all && all !== cb && !all.checked) all.checked = true;
+        }
     };
 
     /** Update count badge on each card header + the summary chips at top. */
     const refreshCounts = () => {
-        const labelByValue = new Map();
-        catCheckboxes().forEach(cb => {
-            const lbl = cb.closest('label')?.querySelector('.cat-pick-label')?.textContent?.trim() || '';
-            labelByValue.set(cb.value, lbl);
-        });
-
         document.querySelectorAll('.cat-card').forEach(card => {
-            const ticked = card.querySelectorAll('input[type="checkbox"]:checked').length;
+            const ticked = card.querySelectorAll('input[type="checkbox"][name="categories[]"]:checked').length;
             const badge = card.querySelector('.cat-card-count');
             if (badge) {
                 badge.textContent = String(ticked);
@@ -279,7 +298,7 @@
         const chip = e.target.closest('[data-uncheck]');
         if (!chip) return;
         const val = chip.getAttribute('data-uncheck');
-        const cb = form.querySelector('input[name="categories[]"][value="' + CSS.escape(val) + '"]');
+        const cb = document.querySelector('input[type="checkbox"][name="categories[]"][value="' + CSS.escape(val) + '"]');
         if (cb) {
             cb.checked = false;
             cb.dispatchEvent(new Event('change', { bubbles: true }));
@@ -290,8 +309,7 @@
     catCheckboxes().forEach(cb => {
         cb.addEventListener('change', () => {
             applyExclusion(cb);
-            ensureRootTicked(cb);
-            ensureSubParentTicked(cb);
+            ensureAncestorsTicked(cb);
             refreshCardStates();
             refreshCounts();
         });
